@@ -1,2 +1,14 @@
 ---
 # defaults file for stefanhorning.ubuntu_hetzner_cloud
+
+hetzner_cloud_custom_user: ubuntu
+hetzner_cloud_update_apt: true
+hetzner_cloud_ssh_port: 2222
+hetzner_cloud_open_ports: []
+
+hetzner_cloud_essential_packages:
+  - htop
+  - iptraf-ng
+  - ntp
+  - git-core
+  - tmux
