@@ -15,15 +15,12 @@
   ignore_unreachable: true
   register: root_user_ping
 
-- name: Debug out
-  debug:
-    var: root_user_ping
-
 # Settings tht match a instance this role has already run against (SSH user: hetzner_cloud_custom_user, SSH port: hetzner_cloud_ssh_port)
 - name: Set SSH user {{ hetzner_cloud_custom_user }} on a rerun of this role (if connection with root credenials failed)
   set_fact:
     ansible_ssh_user: "{{ hetzner_cloud_custom_user }}"
     ansible_port: "{{ hetzner_cloud_ssh_port }}"
+  register: set_fact_results
   when:
     - root_user_ping.unreachable is defined
     - root_user_ping.unreachable
@@ -32,6 +29,9 @@
   ping:
   ignore_errors: true
   ignore_unreachable: true
+  when:
+    - set_fact_results is defined
+    - set_fact_results.changed
   register: custom_user_ping
 
 - name: If connection fail try default port 22 again (just in case this role didn't suceed updating SSH port yet)
@@ -39,6 +39,7 @@
     ansible_port: 22
   when:
     - custom_user_ping is defined
+    - custom_user_ping.unreachable is defined
     - custom_user_ping.unreachable
 
 - name: Gather facts with now correct SSH settings
