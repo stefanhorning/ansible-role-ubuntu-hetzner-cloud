@@ -9,7 +9,7 @@
     ansible_ssh_user: root
     ansible_port: 22
 
-- name: SSH ping with root user
+- name: SSH ping with root user (for testing if connection details still work)
   ping:
   ignore_errors: true
   ignore_unreachable: true
@@ -28,7 +28,18 @@
     - root_user_ping.unreachable is defined
     - root_user_ping.unreachable
 
-# TODO: Also check for port reachability before assuming that SSHd conf has aleady been updated too.
+- name: SSH ping with custom user (for testing if new connection details will work)
+  ping:
+  ignore_errors: true
+  ignore_unreachable: true
+  register: custom_user_ping
+
+- name: If connection fail try default port 22 again (just in case this role didn't suceed updating SSH port yet)
+  set_fact:
+    ansible_port: 22
+  when:
+    - custom_user_ping is defined
+    - custom_user_ping.unreachable
 
 - name: Gather facts with now correct SSH settings
   gather_facts:
@@ -96,6 +107,7 @@
     state: present
 
 - name: Make sure .ssh dir exists for custom user
+  become: true
   file:
     path: /home/{{ hetzner_cloud_custom_user }}/.ssh/
     state: directory
@@ -185,10 +197,11 @@
 
 - name: Output infos
   debug:
-    msg: Now use {{ hetzner_cloud_custom_user }} and port {{ hetzner_cloud_ssh_port }} to SSH to machine now (remaining role tasks do this automatically)
+    msg: Now use {{ hetzner_cloud_custom_user }} and port {{ hetzner_cloud_ssh_port }} to SSH to machine now (will work for rest of play as next task will update this)
 
-- name: Set new Ansible SSH port
+- name: Set new Ansible SSH user and port afer restarting SSHd with new config
   set_fact:
+    ansible_ssh_user: "{{ hetzner_cloud_custom_user }}"
     ansible_port: "{{ hetzner_cloud_ssh_port }}"
 
 - name: Enable Firewall rules (only allows whitelisted ports after this)
@@ -201,3 +214,22 @@
   debug:
     var: ufw_results
 
+# -- Setup nice prompts for root and normal user part --
+
+- name: Copy nice bashrc into place for root (improved prompt, enabled bash completion)
+  become: true
+  copy:
+    src: root-bashrc
+    dest: /root/.bashrc
+    mode: 0644
+    owner: root
+    group: root
+
+- name: Copy nice bashrc into place for custom user (improved prompt, enabled bash completion)
+  become: true
+  copy:
+    src: user-bashrc
+    dest: /home/{{ hetzner_cloud_custom_user }}/.bashrc
+    mode: 0644
+    owner: "{{ hetzner_cloud_custom_user }}"
+    group: "{{ hetzner_cloud_custom_user }}"
