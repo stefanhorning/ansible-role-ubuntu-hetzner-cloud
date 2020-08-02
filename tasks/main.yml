@@ -102,7 +102,7 @@
     path: /etc/ssh/sshd_config
     regex: '^PermitRootLogin'
     line: 'PermitRootLogin no'
-  state: present
+    state: present
 
 - name: Update SSH config to disallow password auth
   remote_user: "{{ run_role_as_user }}"
@@ -111,7 +111,7 @@
     path: /etc/ssh/sshd_config
     regex: '^PasswordAuthentication'
     line: 'PasswordAuthentication no'
-  state: present
+    state: present
 
 - name: Update SSH config to use custom port
   remote_user: "{{ run_role_as_user }}"
@@ -120,14 +120,14 @@
     path: /etc/ssh/sshd_config
     regex: '^Port'
     line: 'Port {{ hetzner_cloud_ssh_port }}'
-  state: present
+    state: present
 
 - name: Install UFW firewall
   remote_user: "{{ run_role_as_user }}"
   become: true
   apt:
     name: ufw
-  state: present
+    state: present
 
 - name: Set UFW rule to deny incomming traffic by default
   remote_user: "{{ run_role_as_user }}"
