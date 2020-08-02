@@ -9,7 +9,7 @@ The limitations are twofold:
 1. Their provided Ubuntu images are quite basic, just havin a root user, which is used for SSH signin (no other users, more secure SSH config)
 2. No Firewall product that let's you easily manage instance access through the Cloud offering itself (such as AWS seucrity groups or DO firewalls)
 
-To leviate both of this shortcomings (and alos install other nice tooling) this role exits.
+To leviate both of this shortcomings (and also install other essential tooling) this role exits.
 It will do the following:
 
 1. Setup a normal linux system user which then can be used for connecting (sudo enabled)

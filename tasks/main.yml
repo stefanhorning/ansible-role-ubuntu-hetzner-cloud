@@ -85,7 +85,7 @@
     owner: "{{ hetzner_cloud_custom_user }}"
     mode: 0600
 
-- name: Move public ssh keys from root user to custom user
+- name: Move public ssh keys from root user to custom user (when running as root)
   remote_user: "{{ run_role_as_user }}"
   copy:
     remote_src: true
@@ -113,6 +113,15 @@
     line: 'PasswordAuthentication no'
   state: present
 
+- name: Update SSH config to use custom port
+  remote_user: "{{ run_role_as_user }}"
+  become: true
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regex: '^Port'
+    line: 'Port {{ hetzner_cloud_ssh_port }}'
+  state: present
+
 - name: Install UFW firewall
   remote_user: "{{ run_role_as_user }}"
   become: true
@@ -126,3 +135,51 @@
   ufw:
     direction: incoming
     default: deny
+
+- name: Set UFW rule to allow outgoing traffic by default
+  remote_user: "{{ run_role_as_user }}"
+  become: true
+  ufw:
+    direction: outgoing
+    default: allow
+
+- name: Ensure configured SSH port is still opened UFW
+  remote_user: "{{ run_role_as_user }}"
+  become: true
+  ufw:
+    rule: allow
+    port: "{{ hetzner_cloud_ssh_port }}"
+    proto: tcp
+
+- name: Add other ports to allow incomming traffic from
+  remote_user: "{{ run_role_as_user }}"
+  become: true
+  ufw:
+    rule: allow
+    port: "{{ item.port }}"
+    proto: tcp
+  with_items: "{{ hetzner_cloud_open_ports }}"
+
+- name: Restart SSHd server to switch to new port (use new port and user after this)
+  remote_user: "{{ run_role_as_user }}"
+  become: true
+  service:
+    name: sshd
+    state: restarted
+    enabled: true
+
+- name: Output infos
+  debug:
+    msg: Now use {{ hetzner_cloud_custom_user }} and port {{ hetzner_cloud_ssh_port }} to SSH to machine now (remaining role tasks do this automatically)
+
+- name: Enabled Firewall rules (only allows whitelisted ports after this)
+  remote_user: "{{ hetzner_cloud_custom_user }}"
+  ansible_port: "{{ hetzner_cloud_ssh_port }}"
+  become: true
+  ufw:
+    state: enabled
+  register: ufw_results
+
+- name: Output UWF results
+  debug:
+    var: ufw_results
