@@ -1,3 +1,7 @@
 ---
 # handlers file for stefanhorning.ubuntu_hetzner_cloud
 
+- name: restart ssh
+  service:
+    name: sshd
+    state: restarted

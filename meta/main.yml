@@ -11,8 +11,9 @@ galaxy_info:
   platforms:
     - name: Ubuntu
       versions:
-        - 18.04
-        - 20.04
+        - xenial
+        - bionic
+        - focal
 
   galaxy_tags:
     - ubuntu

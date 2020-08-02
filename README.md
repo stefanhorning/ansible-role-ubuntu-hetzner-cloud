@@ -50,6 +50,7 @@ Use role like this in your playbook, after installing this role:
 
 ```yaml
 - name: Install server stuff
+  gather_facts: false # important if your inventory settings already use final ssh user (hetzner_cloud_custom_user)
   hosts: cloud-servers
   vars:
     # vars for stefanhorning.ubuntu_hetzner_cloud role:

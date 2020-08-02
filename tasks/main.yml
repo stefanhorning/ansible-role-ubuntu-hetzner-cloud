@@ -1,32 +1,45 @@
 ---
 # tasks file for stefanhorning.ubuntu_hetzner_cloud
 
-- name: Ping as defined custom user to see if user already exists
-  ping:
-  remote_user: "{{ hetzner_cloud_custom_user }}"
-  ignore_errors: true
-  register: user_exists
+# -- State detection part --
 
-- name: Set run_role_as_user to either root (if this is initial run) or {{ hetzner_cloud_custom_user }} on a rerun of this role
+# Settings that match a freshly brought up Hetzner Ubuntu image (SSH user: root, SSH port: 22)
+- name: Set fact to run role tasks as root user (will be overriden below if custom user already exists)
   set_fact:
-    run_role_as_user: "{{ hetzner_cloud_custom_user }}"
+    ansible_ssh_user: root
+    ansible_port: 22
 
-- set_fact:
-    run_role_as_user: root
-  when: user_exists.failed
+- name: SSH ping with root user
+  ping:
+  ignore_errors: true
+  ignore_unreachable: true
+  register: root_user_ping
+
+- name: Debug out
+  debug:
+    var: root_user_ping
+
+# Settings tht match a instance this role has already run against (SSH user: hetzner_cloud_custom_user, SSH port: hetzner_cloud_ssh_port)
+- name: Set SSH user {{ hetzner_cloud_custom_user }} on a rerun of this role (if connection with root credenials failed)
+  set_fact:
+    ansible_ssh_user: "{{ hetzner_cloud_custom_user }}"
+    ansible_port: "{{ hetzner_cloud_ssh_port }}"
+  when: root_user_ping.unreachable
+
+- name: Gather facts with now correct SSH settings
+  gather_facts:
 
 - name: Output Linux OS version
-  remote_user: "{{ run_role_as_user }}"
   debug:
-    msg: "Family: {{ ansible_os_family }} | Distro: {{ ansible_distribution }} | Version: {{ ansible_distribution_version }}"
+    esg: "Family: {{ ansible_os_family }} | Distro: {{ ansible_distribution }} | Version: {{ ansible_distribution_version }}"
 
 - name: Output Python version that Ansible is currently using
-  remote_user: "{{ run_role_as_user }}"
   debug:
     var: ansible_python_version
 
+# -- APT tasks part --
+
 - name: Upgrade all installed apt packages
-  remote_user: "{{ run_role_as_user }}"
   become: true
   apt:
     upgrade: dist
@@ -34,29 +47,27 @@
   when: hetzner_cloud_update_apt|bool
 
 - name: Install useful apt packages
-  remote_user: "{{ run_role_as_user }}"
   become: true
   apt:
     name: "{{ hetzner_cloud_essential_packages }}"
     state: present
 
 - name: Run apt clean-ups
-  remote_user: "{{ run_role_as_user }}"
   become: true
   apt:
     autoremove: true
     autoclean: true
   when: hetzner_cloud_update_apt|bool
 
+# -- Custom user setup part (with sudo) --
+
 - name: Make sure we have a wheel group for sudoing
-  remote_user: "{{ run_role_as_user }}"
   become: true
   group:
     name: wheel
     state: present
 
 - name: Allow wheel group to have passwordless sudo
-  remote_user: "{{ run_role_as_user }}"
   become: true
   lineinfile:
     dest: /etc/sudoers
@@ -66,7 +77,6 @@
     state: present
 
 - name: Setup custom system user
-  remote_user: "{{ run_role_as_user }}"
   become: true
   user:
     name: "{{ hetzner_cloud_custom_user }}"
@@ -78,7 +88,6 @@
     state: present
 
 - name: Make sure .ssh dir exists for custom user
-  remote_user: "{{ run_role_as_user }}"
   file:
     path: /home/{{ hetzner_cloud_custom_user }}/.ssh/
     state: directory
@@ -86,7 +95,6 @@
     mode: 0600
 
 - name: Move public ssh keys from root user to custom user (when running as root)
-  remote_user: "{{ run_role_as_user }}"
   copy:
     remote_src: true
     src: /home/root/.ssh/authorized_keys
@@ -95,8 +103,9 @@
     mode: 0600
   when: run_role_as_user == 'root'
 
+# -- SSH config hardening/modifying part --
+
 - name: Update SSH config to disallow root login
-  remote_user: "{{ run_role_as_user }}"
   become: true
   lineinfile:
     path: /etc/ssh/sshd_config
@@ -105,7 +114,6 @@
     state: present
 
 - name: Update SSH config to disallow password auth
-  remote_user: "{{ run_role_as_user }}"
   become: true
   lineinfile:
     path: /etc/ssh/sshd_config
@@ -114,7 +122,6 @@
     state: present
 
 - name: Update SSH config to use custom port
-  remote_user: "{{ run_role_as_user }}"
   become: true
   lineinfile:
     path: /etc/ssh/sshd_config
@@ -122,29 +129,27 @@
     line: 'Port {{ hetzner_cloud_ssh_port }}'
     state: present
 
+# -- Firewall setup part (block all incomming ports except whitelisted) --
+
 - name: Install UFW firewall
-  remote_user: "{{ run_role_as_user }}"
   become: true
   apt:
     name: ufw
     state: present
 
 - name: Set UFW rule to deny incomming traffic by default
-  remote_user: "{{ run_role_as_user }}"
   become: true
   ufw:
     direction: incoming
     default: deny
 
 - name: Set UFW rule to allow outgoing traffic by default
-  remote_user: "{{ run_role_as_user }}"
   become: true
   ufw:
     direction: outgoing
     default: allow
 
 - name: Ensure configured SSH port is still opened UFW
-  remote_user: "{{ run_role_as_user }}"
   become: true
   ufw:
     rule: allow
@@ -152,7 +157,6 @@
     proto: tcp
 
 - name: Add other ports to allow incomming traffic from
-  remote_user: "{{ run_role_as_user }}"
   become: true
   ufw:
     rule: allow
@@ -160,8 +164,9 @@
     proto: tcp
   with_items: "{{ hetzner_cloud_open_ports }}"
 
+# -- Restart and apply above settings (SSHd, Firewall) --
+
 - name: Restart SSHd server to switch to new port (use new port and user after this)
-  remote_user: "{{ run_role_as_user }}"
   become: true
   service:
     name: sshd
@@ -172,9 +177,11 @@
   debug:
     msg: Now use {{ hetzner_cloud_custom_user }} and port {{ hetzner_cloud_ssh_port }} to SSH to machine now (remaining role tasks do this automatically)
 
-- name: Enabled Firewall rules (only allows whitelisted ports after this)
-  remote_user: "{{ hetzner_cloud_custom_user }}"
-  ansible_port: "{{ hetzner_cloud_ssh_port }}"
+- name: Set new Ansible SSH port
+  set_fact:
+    ansible_port: "{{ hetzner_cloud_ssh_port }}"
+
+- name: Enable Firewall rules (only allows whitelisted ports after this)
   become: true
   ufw:
     state: enabled
@@ -183,3 +190,4 @@
 - name: Output UWF results
   debug:
     var: ufw_results
+
