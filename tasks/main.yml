@@ -38,7 +38,7 @@
   become: true
   apt:
     name: "{{ hetzner_cloud_essential_packages }}"
-  state: present
+    state: present
 
 - name: Run apt clean-ups
   remote_user: "{{ run_role_as_user }}"
