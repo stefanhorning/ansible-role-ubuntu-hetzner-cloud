@@ -24,7 +24,11 @@
   set_fact:
     ansible_ssh_user: "{{ hetzner_cloud_custom_user }}"
     ansible_port: "{{ hetzner_cloud_ssh_port }}"
-  when: root_user_ping.unreachable
+  when:
+    - root_user_ping.unreachable is defined
+    - root_user_ping.unreachable
+
+# TODO: Also check for port reachability before assuming that SSHd conf has aleady been updated too.
 
 - name: Gather facts with now correct SSH settings
   gather_facts:
