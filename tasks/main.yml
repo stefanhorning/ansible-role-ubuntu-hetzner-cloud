@@ -110,7 +110,7 @@
     dest: /home/{{ hetzner_cloud_custom_user }}/.ssh/authorized_keys
     owner: "{{ hetzner_cloud_custom_user }}"
     mode: 0600
-  when: run_role_as_user == 'root'
+  when: ansible_ssh_user == 'root'
 
 # -- SSH config hardening/modifying part --
 
