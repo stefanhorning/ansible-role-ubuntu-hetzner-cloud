@@ -1,3 +1,5 @@
+[![Ansible testing](https://github.com/stefanhorning/ansible-role-ubuntu-hetzner-cloud/workflows/Ansible%20testing/badge.svg)](https://github.com/stefanhorning/ansible-role-ubuntu-hetzner-cloud/actions?query=workflow%3A%22Ansible+testing%22)
+
 # Hetzner Cloud Ubuntu baseline role
 
 Ansible role for bootstrapping a Hetzner Ubuntu cloud image with useful tooling for that Cloud offering
