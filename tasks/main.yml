@@ -108,13 +108,13 @@
     state: present
 
 - name: Make sure .ssh dir exists for custom user
-  become: true
   file:
     path: /home/{{ hetzner_cloud_custom_user }}/.ssh/
     state: directory
     owner: "{{ hetzner_cloud_custom_user }}"
     group: "{{ hetzner_cloud_custom_user }}"
     mode: 0700
+  register: ssh_dir_create_result
 
 - name: Move public ssh keys from root user to custom user (when running as root)
   copy:
@@ -124,7 +124,9 @@
     owner: "{{ hetzner_cloud_custom_user }}"
     group: "{{ hetzner_cloud_custom_user }}"
     mode: 0600
-  when: ansible_ssh_user == 'root'
+  when:
+    - ansible_ssh_user == 'root'
+    - ssh_dir_create_result.changed
 
 # -- SSH config hardening/modifying part --
 
