@@ -96,19 +96,20 @@
     state: present
 
 - name: Make sure .ssh dir exists for custom user
-  become: true
   file:
     path: /home/{{ hetzner_cloud_custom_user }}/.ssh/
     state: directory
     owner: "{{ hetzner_cloud_custom_user }}"
-    mode: 0600
+    group: "{{ hetzner_cloud_custom_user }}"
+    mode: 0700
 
 - name: Move public ssh keys from root user to custom user (when running as root)
   copy:
     remote_src: true
-    src: /home/root/.ssh/authorized_keys
+    src: /root/.ssh/authorized_keys
     dest: /home/{{ hetzner_cloud_custom_user }}/.ssh/authorized_keys
     owner: "{{ hetzner_cloud_custom_user }}"
+    group: "{{ hetzner_cloud_custom_user }}"
     mode: 0600
   when: ansible_ssh_user == 'root'
 
