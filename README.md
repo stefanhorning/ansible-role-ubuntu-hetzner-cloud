@@ -1,4 +1,4 @@
-# ubuntu-hetzner-cloud
+# Hetzner Cloud Ubuntu baseline role
 
 Ansible role for bootstrapping a Hetzner Ubuntu cloud image with useful tooling for that Cloud offering
 
