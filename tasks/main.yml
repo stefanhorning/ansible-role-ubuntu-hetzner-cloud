@@ -35,7 +35,7 @@
 
 - name: Output Linux OS version
   debug:
-    esg: "Family: {{ ansible_os_family }} | Distro: {{ ansible_distribution }} | Version: {{ ansible_distribution_version }}"
+    msg: "Family: {{ ansible_os_family }} | Distro: {{ ansible_distribution }} | Version: {{ ansible_distribution_version }}"
 
 - name: Output Python version that Ansible is currently using
   debug:
