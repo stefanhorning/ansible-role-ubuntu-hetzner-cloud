@@ -1,0 +1,17 @@
+---
+
+extends: default
+
+ignore: |
+  roles/
+
+rules:
+  line-length:
+    max: 180
+  indentation:
+    spaces: 2
+  truthy: disable
+  empty-lines:
+    max: 3
+    max-start: 0
+    max-end: 1

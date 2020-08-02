@@ -1,0 +1,56 @@
+---
+
+name: Ansible testing
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Testing
+    runs-on: ubuntu-20.04
+    env:
+      ANSIBLE_FORCE_COLOR: true
+    steps:
+
+      - name: Clone repo from git
+        uses: actions/checkout@v2
+
+      - name: Setup python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+
+      - name: Install Ansible and Yamllint (using pip)
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+          pip install yamllint
+
+      - name: Output versions
+        run: |
+          python --version
+          ansible --version
+          yamllint --version
+
+      - name: Output user info
+        run: id
+
+      - name: Place ansible.cfg file to point to correct roles dir
+        run: "{ echo '[defaults]'; echo 'roles_path = ../'; } >> ansible.cfg"
+
+      - name: Run Yamllint
+        run: yamllint .
+
+      - name: Check Ansible syntax for validity
+        run: ansible-playbook -i tests/inventory tests/test.yml --syntax-check
+
+      - name: Run this role for real
+        run: ansible-playbook -i tests/inventory tests/test.yml --connection=local
+
+      - name: Rerun role for idempotence tests
+        run: ansible-playbook -i tests/inventory tests/test.yml --connection=local
+
+      - name: Output UFW status infos
+        run: sudo uwf status verbose
+
+      - name: Output SSHd config
+        run: cat /etc/ssh/sshd_config

@@ -1,5 +1,11 @@
 ---
-- hosts: localhost
-  remote_user: root
+
+- name: Test playbook for role
+  hosts: localhost
+  vars:
+    hetzner_cloud_open_ports:
+      - { name: http, port: 80 }
+      - { name: https, port: 443 }
   roles:
-    - stefanhorning.ubuntu_hetzner_cloud
+    - ansible-role-ubuntu-hetzner-cloud
+
