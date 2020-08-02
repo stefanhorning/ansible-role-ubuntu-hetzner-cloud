@@ -41,6 +41,10 @@
   debug:
     var: ansible_python_version
 
+- name: Output Ansible ssh user and port
+  debug:
+    msg: "ansible_ssh_user: {{ ansible_ssh_user }} | ansible_port: {{ ansible_port }}"
+
 # -- APT tasks part --
 
 - name: Upgrade all installed apt packages
@@ -92,6 +96,7 @@
     state: present
 
 - name: Make sure .ssh dir exists for custom user
+  become: true
   file:
     path: /home/{{ hetzner_cloud_custom_user }}/.ssh/
     state: directory
